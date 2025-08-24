@@ -1,0 +1,306 @@
+<template>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $t('common.myPosts') }}</h1>
+      <p class="text-gray-600">管理您的文章</p>
+    </div>
+
+    <!-- 未登录提示 -->
+    <div v-if="!isAuthenticated" class="text-center py-12">
+      <div class="text-gray-400 mb-4">
+        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </div>
+      <p class="text-gray-500 mb-4">{{ $t('common.pleaseLogin') }}</p>
+      <div class="space-x-4">
+        <button
+          @click="showAuthModal = true"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+        >
+          {{ $t('common.login') }}
+        </button>
+        <button
+          @click="forceRefreshAuth"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          强制刷新认证状态
+        </button>
+      </div>
+    </div>
+
+    <!-- 已登录用户界面 -->
+    <div v-else>
+      <!-- 操作栏 -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+        <!-- 筛选器 -->
+        <div class="flex items-center space-x-4">
+          <span class="text-sm font-medium text-gray-700">{{ $t('common.filter') }}:</span>
+          <div class="flex space-x-2">
+            <button
+              v-for="option in filterOptions"
+              :key="option.value"
+              @click="setFilter(option.value)"
+              :class="[
+                'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                filter === option.value
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              ]"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 创建文章按钮 -->
+        <button
+          @click="showPostEditor = true"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          {{ $t('common.createPost') }}
+        </button>
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="loading" class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-2 text-gray-600">{{ $t('common.loading') }}</span>
+      </div>
+
+      <!-- 空状态 -->
+      <div v-else-if="filteredUserPosts.length === 0" class="text-center py-12">
+        <div class="text-gray-400 mb-4">
+          <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <p class="text-gray-500">{{ $t('common.noPosts') }}</p>
+      </div>
+
+      <!-- 文章列表 -->
+      <div v-else class="space-y-6">
+        <article
+          v-for="post in filteredUserPosts"
+          :key="post.id"
+          class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+        >
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center space-x-2 mb-2">
+                <h2 class="text-xl font-semibold text-gray-900">{{ post.title }}</h2>
+                <span
+                  v-if="post.published_at"
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                >
+                  {{ $t('common.published') }}
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+                >
+                  {{ $t('common.unpublished') }}
+                </span>
+              </div>
+              
+              <p class="text-gray-600 mb-4 line-clamp-3">{{ post.content }}</p>
+              
+              <div class="flex items-center justify-between text-sm text-gray-500">
+                <div class="flex items-center space-x-4">
+                  <span class="flex items-center">
+                    <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a4 4 0 118 0v4m-4 6v6m-4-6h8" />
+                    </svg>
+                    {{ formatDate(post.created_at) }}
+                  </span>
+                  <span v-if="post.published_at" class="flex items-center">
+                    <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a4 4 0 118 0v4m-4 6v6m-4-6h8" />
+                    </svg>
+                    {{ formatDate(post.published_at) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex items-center space-x-2 ml-4">
+              <button
+                @click="editPost(post)"
+                class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {{ $t('common.edit') }}
+              </button>
+              
+              <button
+                v-if="!post.published_at"
+                @click="publishPost(post.id)"
+                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+              >
+                <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ $t('common.publish') }}
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- 认证模态框 -->
+    <AuthModal
+      :is-open="showAuthModal"
+      mode="login"
+      @close="showAuthModal = false"
+      @success="handleAuthSuccess"
+    />
+
+    <!-- 文章编辑器 -->
+    <PostEditor
+      :is-open="showPostEditor"
+      :post="editingPost"
+      @close="closePostEditor"
+      @success="handlePostSuccess"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { usePostsStore } from '../stores/posts'
+import { useI18n } from 'vue-i18n'
+import AuthModal from '../components/AuthModal.vue'
+import PostEditor from '../components/PostEditor.vue'
+import type { Post } from '../stores/posts'
+
+const { t } = useI18n()
+const authStore = useAuthStore()
+const postsStore = usePostsStore()
+
+const showAuthModal = ref(false)
+const showPostEditor = ref(false)
+const editingPost = ref<Post | null>(null)
+
+// 使用computed来确保响应性
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const user = computed(() => authStore.user)
+const userPosts = computed(() => postsStore.userPosts)
+const loading = computed(() => postsStore.loading)
+const filter = computed(() => postsStore.filter)
+const filteredUserPosts = computed(() => postsStore.filteredUserPosts)
+const { fetchUserPosts, setFilter, publishPost } = postsStore
+
+const filterOptions = [
+  { value: 'all' as const, label: t('common.all') },
+  { value: 'published' as const, label: t('common.published') },
+  { value: 'unpublished' as const, label: t('common.unpublished') }
+]
+
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+const handleAuthSuccess = () => {
+  console.log('MyPosts: 认证成功，用户ID:', user.value?.id)
+  showAuthModal.value = false
+  if (user.value) {
+    fetchUserPosts(user.value.id)
+  }
+}
+
+const editPost = (post: Post) => {
+  editingPost.value = post
+  showPostEditor.value = true
+}
+
+const closePostEditor = () => {
+  showPostEditor.value = false
+  editingPost.value = null
+}
+
+const handlePostSuccess = () => {
+  if (user.value) {
+    fetchUserPosts(user.value.id)
+  }
+}
+
+const handlePublishPost = async (postId: number) => {
+  const result = await publishPost(postId)
+  if (result.success) {
+    // 可以显示成功提示
+  }
+}
+
+// 监听userPosts变化
+watch(userPosts, (newUserPosts) => {
+  console.log('MyPosts: userPosts状态变化，文章数量:', newUserPosts.length)
+  if (newUserPosts.length > 0) {
+    console.log('MyPosts: userPosts文章列表:', newUserPosts.map(p => ({ id: p.id, title: p.title })))
+  }
+}, { immediate: true })
+
+// 监听filteredUserPosts变化
+watch(filteredUserPosts, (newFilteredPosts) => {
+  console.log('MyPosts: filteredUserPosts状态变化，文章数量:', newFilteredPosts.length)
+}, { immediate: true })
+
+// 监听认证状态变化
+watch(isAuthenticated, (newValue) => {
+  console.log('MyPosts: 认证状态变化:', newValue, '用户:', user.value?.email)
+  if (newValue && user.value) {
+    console.log('MyPosts: 获取用户文章，用户ID:', user.value.id)
+    fetchUserPosts(user.value.id)
+  }
+})
+
+// 监听用户信息变化
+watch(user, (newUser) => {
+  console.log('MyPosts: 用户信息变化:', newUser?.email)
+  if (newUser && isAuthenticated.value) {
+    console.log('MyPosts: 用户信息变化后获取文章，用户ID:', newUser.id)
+    fetchUserPosts(newUser.id)
+  }
+})
+
+onMounted(async () => {
+  console.log('MyPosts: 组件挂载，认证状态:', isAuthenticated.value, '用户:', user.value?.email)
+  
+  // 等待认证状态初始化完成
+  if (!authStore.user && !authStore.loading) {
+    console.log('MyPosts: 等待认证状态初始化...')
+    await authStore.initAuth()
+  }
+  
+  if (isAuthenticated.value && user.value) {
+    console.log('MyPosts: 初始化获取用户文章，用户ID:', user.value.id)
+    fetchUserPosts(user.value.id)
+  }
+})
+
+const forceRefreshAuth = () => {
+  console.log('MyPosts: 强制刷新认证状态')
+  authStore.forceRefreshAuth()
+}
+</script>
+
+<style scoped>
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>
