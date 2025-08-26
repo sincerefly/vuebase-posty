@@ -108,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { usePostsStore } from '../stores/posts'
 import { useAuthStore } from '../stores/auth'
@@ -158,6 +158,21 @@ const resetForm = () => {
   form.content = ''
   error.value = ''
 }
+
+// ESC 键关闭功能
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    close()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
 
 const handleSubmit = async () => {
   if (!form.title.trim() || !form.content.trim()) {
