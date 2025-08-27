@@ -33,7 +33,14 @@ const messages = {
       noPosts: '暂无文章',
       loading: '加载中...',
       error: '错误',
-      success: '成功'
+      success: '成功',
+      discoverContent: '发现精彩的文章内容',
+      managePosts: '管理您的文章',
+      otherSettings: '其他设置',
+      moreSettingsComing: '更多设置选项将在后续版本中添加',
+      personalizeExperience: '个性化您的体验',
+      forceRefreshAuth: '强制刷新认证状态',
+      anonymousUser: '匿名用户'
     },
     auth: {
       loginTitle: '登录',
@@ -93,7 +100,14 @@ const messages = {
       noPosts: 'No posts yet',
       loading: 'Loading...',
       error: 'Error',
-      success: 'Success'
+      success: 'Success',
+      discoverContent: 'Discover amazing content',
+      managePosts: 'Manage your posts',
+      otherSettings: 'Other Settings',
+      moreSettingsComing: 'More settings options will be added in future versions',
+      personalizeExperience: 'Personalize your experience',
+      forceRefreshAuth: 'Force Refresh Auth Status',
+      anonymousUser: 'Anonymous User'
     },
     auth: {
       loginTitle: 'Login',

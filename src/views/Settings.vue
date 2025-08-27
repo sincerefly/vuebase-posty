@@ -2,7 +2,7 @@
   <div class="max-w-2xl mx-auto px-4 py-8">
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $t('common.settings') }}</h1>
-      <p class="text-gray-600">个性化您的体验</p>
+      <p class="text-gray-600">{{ $t('common.personalizeExperience') }}</p>
     </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -29,8 +29,8 @@
 
       <!-- 其他设置可以在这里添加 -->
       <div class="border-t border-gray-200 pt-6">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">其他设置</h2>
-        <p class="text-gray-500 text-sm">更多设置选项将在后续版本中添加</p>
+        <h2 class="text-lg font-medium text-gray-900 mb-4">{{ $t('common.otherSettings') }}</h2>
+        <p class="text-gray-500 text-sm">{{ $t('common.moreSettingsComing') }}</p>
       </div>
     </div>
   </div>

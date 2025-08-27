@@ -2,7 +2,7 @@
   <div class="max-w-4xl mx-auto px-4 py-8">
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $t('common.square') }}</h1>
-      <p class="text-gray-600">发现精彩的文章内容</p>
+      <p class="text-gray-600">{{ $t('common.discoverContent') }}</p>
     </div>
 
     <div v-if="loading" class="flex justify-center items-center py-12">
@@ -36,7 +36,7 @@
                   <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  {{ post.users?.username || '匿名用户' }}
+                  {{ post.users?.username || $t('common.anonymousUser') }}
                 </span>
                 <span class="flex items-center">
                   <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -2,7 +2,7 @@
   <div class="max-w-4xl mx-auto px-4 py-8">
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $t('common.myPosts') }}</h1>
-      <p class="text-gray-600">管理您的文章</p>
+      <p class="text-gray-600">{{ $t('common.managePosts') }}</p>
     </div>
 
     <!-- 未登录提示 -->
@@ -24,7 +24,7 @@
           @click="forceRefreshAuth"
           class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
         >
-          强制刷新认证状态
+          {{ $t('common.forceRefreshAuth') }}
         </button>
       </div>
     </div>
