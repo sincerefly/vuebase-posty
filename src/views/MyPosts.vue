@@ -53,22 +53,55 @@
           </div>
         </div>
 
-        <!-- 创建文章按钮 -->
-        <button
-          @click="showPostEditor = true"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-        >
-          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          {{ $t('common.createPost') }}
-        </button>
+        <!-- 操作按钮 -->
+        <div class="flex space-x-2">
+          <button
+            @click="() => { 
+              console.log('MyPosts: 刷新按钮被点击'); 
+              user && fetchUserPosts(user.id); 
+            }"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            刷新
+          </button>
+          <button
+            @click="showPostEditor = true"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            {{ $t('common.createPost') }}
+          </button>
+        </div>
       </div>
 
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span class="ml-2 text-gray-600">{{ $t('common.loading') }}</span>
+      <div v-if="loading" class="flex flex-col justify-center items-center py-12">
+        <div class="flex items-center mb-4">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span class="ml-2 text-gray-600">{{ $t('common.loading') }}</span>
+        </div>
+                  <!-- 调试按钮，只在开发环境显示 -->
+          <template v-if="import.meta.env.DEV">
+            <div class="space-x-2">
+              <button
+                @click="testSupabaseConnection"
+                class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded text-blue-700 bg-white hover:bg-blue-50"
+              >
+                测试连接
+              </button>
+              <button
+                @click="testSupabaseBasicConnection"
+                class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded text-green-700 bg-white hover:bg-green-50"
+              >
+                基本连接测试
+              </button>
+            </div>
+          </template>
       </div>
 
       <!-- 空状态 -->
@@ -173,21 +206,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onActivated } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { usePostsStore } from '../stores/posts'
 import { useI18n } from 'vue-i18n'
 import AuthModal from '../components/AuthModal.vue'
 import PostEditor from '../components/PostEditor.vue'
+import { supabase } from '../lib/supabaseClient'
 import type { Post } from '../stores/posts'
 
 const { t } = useI18n()
+const route = useRoute()
 const authStore = useAuthStore()
 const postsStore = usePostsStore()
 
 const showAuthModal = ref(false)
 const showPostEditor = ref(false)
 const editingPost = ref<Post | null>(null)
+
+// 防止重复调用的标记
+const hasInitialized = ref(false)
 
 // 使用computed来确保响应性
 const isAuthenticated = computed(() => authStore.isAuthenticated)
@@ -196,7 +235,7 @@ const userPosts = computed(() => postsStore.userPosts)
 const loading = computed(() => postsStore.loading)
 const filter = computed(() => postsStore.filter)
 const filteredUserPosts = computed(() => postsStore.filteredUserPosts)
-const { fetchUserPosts, setFilter, publishPost } = postsStore
+const { fetchUserPosts, setFilter, publishPost, testSupabaseConnection, testSupabaseBasicConnection } = postsStore
 
 const filterOptions = [
   { value: 'all' as const, label: t('common.all') },
@@ -244,6 +283,12 @@ const handlePublishPost = async (postId: number) => {
   }
 }
 
+// 监听路由变化，每次进入我的页面时刷新数据
+watch(() => route.name, (newRouteName, oldRouteName) => {
+  console.log('MyPosts: 路由变化:', oldRouteName, '->', newRouteName)
+  // 移除自动刷新逻辑，只在用户操作时获取数据
+})
+
 // 监听userPosts变化
 watch(userPosts, (newUserPosts) => {
   console.log('MyPosts: userPosts状态变化，文章数量:', newUserPosts.length)
@@ -258,21 +303,15 @@ watch(filteredUserPosts, (newFilteredPosts) => {
 }, { immediate: true })
 
 // 监听认证状态变化
-watch(isAuthenticated, (newValue) => {
-  console.log('MyPosts: 认证状态变化:', newValue, '用户:', user.value?.email)
-  if (newValue && user.value) {
-    console.log('MyPosts: 获取用户文章，用户ID:', user.value.id)
-    fetchUserPosts(user.value.id)
-  }
+watch(isAuthenticated, (newValue, oldValue) => {
+  console.log('MyPosts: 认证状态变化:', oldValue, '->', newValue, '用户:', user.value?.email)
+  // 移除自动获取数据的逻辑，只在用户操作时获取
 })
 
-// 监听用户信息变化
-watch(user, (newUser) => {
-  console.log('MyPosts: 用户信息变化:', newUser?.email)
-  if (newUser && isAuthenticated.value) {
-    console.log('MyPosts: 用户信息变化后获取文章，用户ID:', newUser.id)
-    fetchUserPosts(newUser.id)
-  }
+// 监听用户信息变化（只在用户从无到有时触发）
+watch(user, (newUser, oldUser) => {
+  console.log('MyPosts: 用户信息变化:', newUser?.email, '之前:', oldUser?.email)
+  // 移除自动获取数据的逻辑，只在用户操作时获取
 })
 
 onMounted(async () => {
@@ -282,12 +321,30 @@ onMounted(async () => {
   if (!authStore.user && !authStore.loading) {
     console.log('MyPosts: 等待认证状态初始化...')
     await authStore.initAuth()
+  } else if (authStore.loading) {
+    console.log('MyPosts: 认证状态正在初始化中，等待完成...')
+    // 等待认证完成
+    while (authStore.loading) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
   }
   
-  if (isAuthenticated.value && user.value) {
-    console.log('MyPosts: 初始化获取用户文章，用户ID:', user.value.id)
+  // 标记已初始化
+  hasInitialized.value = true
+  
+  // 如果已经认证且有用户，且没有数据，则获取文章
+  if (isAuthenticated.value && user.value && userPosts.value.length === 0) {
+    console.log('MyPosts: 初始化时没有数据，获取用户文章，用户ID:', user.value.id)
     fetchUserPosts(user.value.id)
   }
+  
+  console.log('MyPosts: 组件挂载完成')
+})
+
+// 当组件被激活时（路由切换回来），不自动刷新数据
+onActivated(() => {
+  console.log('MyPosts: 组件被激活，但不自动刷新数据')
+  // 移除自动刷新逻辑，只在用户操作时刷新
 })
 
 const forceRefreshAuth = () => {

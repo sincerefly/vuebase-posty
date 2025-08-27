@@ -1,13 +1,65 @@
 <template>
   <div class="max-w-4xl mx-auto px-4 py-8">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $t('common.square') }}</h1>
-      <p class="text-gray-600">{{ $t('common.discoverContent') }}</p>
+      <div class="flex justify-between items-start">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $t('common.square') }}</h1>
+          <p class="text-gray-600">{{ $t('common.discoverContent') }}</p>
+        </div>
+        <div class="flex space-x-2">
+          <button
+            @click="() => { 
+              console.log('Square: 刷新按钮被点击'); 
+              resetLoadingState(); 
+              fetchPublishedPosts(); 
+            }"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            刷新
+          </button>
+
+          <!-- 调试按钮，只在开发环境显示 -->
+          <template v-if="import.meta.env.DEV">
+            <button
+              @click="checkAndReinitSupabase"
+              class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50"
+            >
+              检查状态
+            </button>
+            <button
+              @click="testUserPermissions"
+              class="inline-flex items-center px-3 py-2 border border-purple-300 text-sm font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50"
+            >
+              测试权限
+            </button>
+          </template>
+
+        </div>
+      </div>
     </div>
 
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <span class="ml-2 text-gray-600">{{ $t('common.loading') }}</span>
+    <div v-if="loading" class="flex flex-col justify-center items-center py-12">
+      <div class="flex items-center mb-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-2 text-gray-600">{{ $t('common.loading') }}</span>
+      </div>
+      <div class="space-x-2">
+        <button
+          @click="resetLoadingState"
+          class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+        >
+          重置加载状态
+        </button>
+        <button
+          @click="forceResetAll"
+          class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded text-red-700 bg-white hover:bg-red-50"
+        >
+          完全重置
+        </button>
+      </div>
     </div>
 
     <div v-else-if="posts.length === 0" class="text-center py-12">
@@ -54,19 +106,26 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch, computed } from 'vue'
+import { onMounted, watch, computed, ref, onActivated } from 'vue'
+import { useRoute } from 'vue-router'
 import { usePostsStore } from '../stores/posts'
 import { useAuthStore } from '../stores/auth'
 import { useI18n } from 'vue-i18n'
+import { supabase } from '../lib/supabaseClient'
 
 const { t } = useI18n()
+const route = useRoute()
 const postsStore = usePostsStore()
 const authStore = useAuthStore()
 
 // 使用computed确保响应性
 const posts = computed(() => postsStore.posts)
 const loading = computed(() => postsStore.loading)
-const { fetchPublishedPosts } = postsStore
+const { fetchPublishedPosts, resetLoadingState, forceResetAll, checkAndReinitSupabase, testUserPermissions } = postsStore
+
+// 防止重复调用的标记
+const hasInitialized = ref(false)
+const lastFetchTime = ref(0)
 
 const formatDate = (dateString: string | null) => {
   if (!dateString) return ''
@@ -77,23 +136,22 @@ const formatDate = (dateString: string | null) => {
   })
 }
 
+// 监听路由变化，每次进入广场页面时刷新数据
+watch(() => route.name, (newRouteName, oldRouteName) => {
+  console.log('Square: 路由变化:', oldRouteName, '->', newRouteName)
+  // 移除自动刷新逻辑，只在用户操作时获取数据
+})
+
 // 监听认证状态变化，确保在认证完成后获取数据
 watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   console.log('Square: 认证状态变化:', isAuthenticated)
-  if (isAuthenticated) {
-    console.log('Square: 认证完成，获取已发布文章')
-    fetchPublishedPosts()
-  }
+  // 移除自动获取数据的逻辑，只在用户操作时获取
 })
 
-// 监听用户状态变化
-watch(() => authStore.user, (newUser) => {
-  console.log('Square: 用户状态变化:', newUser?.email || '无用户')
-  // 当用户状态确定后，获取文章
-  if (newUser !== undefined) {
-    console.log('Square: 用户状态确定，获取已发布文章')
-    fetchPublishedPosts()
-  }
+// 监听用户状态变化（只在用户从无到有时触发）
+watch(() => authStore.user, (newUser, oldUser) => {
+  console.log('Square: 用户状态变化:', newUser?.email || '无用户', '之前:', oldUser?.email || '无用户')
+  // 移除自动获取数据的逻辑，只在用户操作时获取
 }, { immediate: true })
 
 // 监听posts变化
@@ -116,9 +174,22 @@ onMounted(async () => {
     }
   }
   
-  // 无论是否认证，广场页面都应该显示已发布的文章
-  console.log('Square: 获取已发布文章')
-  fetchPublishedPosts()
+  // 标记已初始化
+  hasInitialized.value = true
+  
+  // 如果没有数据，则获取已发布的文章
+  if (posts.value.length === 0) {
+    console.log('Square: 初始化时没有数据，获取已发布文章')
+    fetchPublishedPosts()
+  }
+  
+  console.log('Square: 组件挂载完成')
+})
+
+// 当组件被激活时（路由切换回来），不自动刷新数据
+onActivated(() => {
+  console.log('Square: 组件被激活，但不自动刷新数据')
+  // 移除自动刷新逻辑，只在用户操作时刷新
 })
 </script>
 
