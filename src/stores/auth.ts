@@ -20,8 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
     
-    const initLoading = ref(false) // 使用独立的loading状态
-    initLoading.value = true
+    loading.value = true
     try {
       console.log('初始化认证状态...')
       const { data: { user: currentUser } } = await supabase.auth.getUser()
@@ -40,7 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       console.error('初始化认证状态失败:', error)
     } finally {
-      initLoading.value = false
+      loading.value = false
     }
   }
 

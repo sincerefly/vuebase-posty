@@ -86,6 +86,16 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   }
 })
 
+// 监听用户状态变化
+watch(() => authStore.user, (newUser) => {
+  console.log('Square: 用户状态变化:', newUser?.email || '无用户')
+  // 当用户状态确定后，获取文章
+  if (newUser !== undefined) {
+    console.log('Square: 用户状态确定，获取已发布文章')
+    fetchPublishedPosts()
+  }
+}, { immediate: true })
+
 // 监听posts变化
 watch(posts, (newPosts) => {
   console.log('Square: posts状态变化，文章数量:', newPosts.length)
@@ -98,6 +108,12 @@ onMounted(async () => {
   if (!authStore.user && !authStore.loading) {
     console.log('Square: 等待认证状态初始化...')
     await authStore.initAuth()
+  } else if (authStore.loading) {
+    console.log('Square: 认证状态正在初始化中，等待完成...')
+    // 等待认证完成
+    while (authStore.loading) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
   }
   
   // 无论是否认证，广场页面都应该显示已发布的文章
