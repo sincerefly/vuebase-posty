@@ -59,7 +59,7 @@
             <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            刷新
+            {{ $t('common.refresh') }}
           </button>
           <button
             @click="showPostEditor = true"
@@ -175,6 +175,17 @@
                 </svg>
                 {{ $t('common.publish') }}
               </button>
+              
+              <button
+                v-if="post.published_at"
+                @click="unpublishPost(post.id)"
+                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-orange-600 hover:bg-orange-700"
+              >
+                <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+                {{ $t('common.unpublish') }}
+              </button>
             </div>
           </div>
         </article>
@@ -232,7 +243,7 @@ const userPosts = computed(() => postsStore.userPosts)
 const loading = computed(() => postsStore.loading)
 const filter = computed(() => postsStore.filter)
 const filteredUserPosts = computed(() => postsStore.filteredUserPosts)
-const { fetchUserPosts, setFilter, publishPost, testSupabaseConnection, testSupabaseBasicConnection } = postsStore
+const { fetchUserPosts, setFilter, publishPost, unpublishPost, testSupabaseConnection, testSupabaseBasicConnection } = postsStore
 
 const filterOptions = [
   { value: 'all' as const, label: t('common.all') },

@@ -439,6 +439,38 @@ export const usePostsStore = defineStore('posts', () => {
     }
   }
 
+  // 撤回文章
+  const unpublishPost = async (id: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .update({
+          published_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // 更新本地状态 - 同时更新posts和userPosts
+      const postsIndex = posts.value.findIndex(post => post.id === id)
+      if (postsIndex !== -1) {
+        posts.value[postsIndex] = data
+      }
+      
+      const userPostsIndex = userPosts.value.findIndex(post => post.id === id)
+      if (userPostsIndex !== -1) {
+        userPosts.value[userPostsIndex] = data
+      }
+
+      return { success: true, data }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
   // 删除文章
   const deletePost = async (id: number) => {
     console.log('deletePost: 开始删除文章，ID:', id)
@@ -509,6 +541,7 @@ export const usePostsStore = defineStore('posts', () => {
     createPost,
     updatePost,
     publishPost,
+    unpublishPost,
     deletePost,
     setFilter,
     clearPosts, // 新增：返回清除方法
