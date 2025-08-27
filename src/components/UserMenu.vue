@@ -2,7 +2,7 @@
   <div class="relative" ref="menuRef">
     <button
       @click="isOpen = !isOpen"
-      class="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      class="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none"
     >
       <div class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
         <span class="text-white font-medium text-sm">
