@@ -102,12 +102,16 @@ export const useAuthStore = defineStore('auth', () => {
   const register = async (email: string, password: string, username: string) => {
     loading.value = true
     try {
-      console.log('开始注册...')
+      console.log('开始注册...', { email, username })
+      
+      // 使用正确的 Supabase 注册格式
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { username }
+          data: {
+            username: username
+          }
         }
       })
 
@@ -118,6 +122,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (data.user) {
         console.log('注册成功，用户数据:', data.user)
+        
         // 创建用户资料
         const { error: profileError } = await supabase
           .from('users')
@@ -129,7 +134,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         if (profileError) {
           console.error('创建用户资料失败:', profileError)
-          throw profileError
+          // 不抛出错误，因为用户注册已经成功
         }
 
         user.value = data.user
