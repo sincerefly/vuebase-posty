@@ -1,5 +1,5 @@
 <template>
-  <div class="relative">
+  <div class="relative" ref="menuRef">
     <button
       @click="isOpen = !isOpen"
       class="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import { usePostsStore } from '../stores/posts'
@@ -59,8 +59,26 @@ const postsStore = usePostsStore()
 
 const isOpen = ref(false)
 const logoutLoading = ref(false)
+const menuRef = ref<HTMLElement>()
 
 const username = computed(() => authStore.username)
+
+// 点击外部关闭菜单
+const handleClickOutside = (event: Event) => {
+  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
+    isOpen.value = false
+  }
+}
+
+// 组件挂载时添加全局点击事件监听器
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+// 组件卸载时移除全局点击事件监听器
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 const handleLogout = async () => {
   console.log('UserMenu: 开始登出处理')
