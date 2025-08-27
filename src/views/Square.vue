@@ -22,7 +22,7 @@
           </button>
 
           <!-- 调试按钮，只在开发环境显示 -->
-          <template v-if="import.meta.env.DEV">
+          <template v-if="isDev">
             <button
               @click="checkAndReinitSupabase"
               class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50"
@@ -117,6 +117,9 @@ const { t } = useI18n()
 const route = useRoute()
 const postsStore = usePostsStore()
 const authStore = useAuthStore()
+
+// 开发环境标识
+const isDev = import.meta.env.DEV
 
 // 使用computed确保响应性
 const posts = computed(() => postsStore.posts)

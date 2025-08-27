@@ -20,12 +20,6 @@
         >
           {{ $t('common.login') }}
         </button>
-        <button
-          @click="forceRefreshAuth"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-        >
-          {{ $t('common.forceRefreshAuth') }}
-        </button>
       </div>
     </div>
 
@@ -86,7 +80,7 @@
           <span class="ml-2 text-gray-600">{{ $t('common.loading') }}</span>
         </div>
                   <!-- 调试按钮，只在开发环境显示 -->
-          <template v-if="import.meta.env.DEV">
+          <template v-if="isDev">
             <div class="space-x-2">
               <button
                 @click="testSupabaseConnection"
@@ -221,6 +215,9 @@ const route = useRoute()
 const authStore = useAuthStore()
 const postsStore = usePostsStore()
 
+// 开发环境标识
+const isDev = import.meta.env.DEV
+
 const showAuthModal = ref(false)
 const showPostEditor = ref(false)
 const editingPost = ref<Post | null>(null)
@@ -347,10 +344,7 @@ onActivated(() => {
   // 移除自动刷新逻辑，只在用户操作时刷新
 })
 
-const forceRefreshAuth = () => {
-  console.log('MyPosts: 强制刷新认证状态')
-  authStore.forceRefreshAuth()
-}
+
 </script>
 
 <style scoped>
