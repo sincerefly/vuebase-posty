@@ -261,20 +261,18 @@ export const useAuthStore = defineStore('auth', () => {
       if (session?.user) {
         console.log('用户已登录:', session.user.email)
         try {
-          // 添加延迟确保数据库状态同步
-          setTimeout(async () => {
-            await fetchProfile(session.user.id)
-            console.log('用户资料获取完成')
-            
-            // 通知文章store重新获取数据
-            try {
-              const { usePostsStore } = await import('./posts')
-              const postsStore = usePostsStore()
-              await postsStore.handleAuthStateChange(session.user.id)
-            } catch (postsError) {
-              console.error('通知文章store失败:', postsError)
-            }
-          }, 1000)
+          // 立即获取用户资料，不添加延迟
+          await fetchProfile(session.user.id)
+          console.log('用户资料获取完成')
+          
+          // 立即通知文章store重新获取数据
+          try {
+            const { usePostsStore } = await import('./posts')
+            const postsStore = usePostsStore()
+            await postsStore.handleAuthStateChange(session.user.id)
+          } catch (postsError) {
+            console.error('通知文章store失败:', postsError)
+          }
         } catch (error) {
           console.error('获取用户资料失败:', error)
         }
