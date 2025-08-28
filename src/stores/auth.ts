@@ -265,15 +265,8 @@ export const useAuthStore = defineStore('auth', () => {
           await fetchProfile(session.user.id)
           console.log('用户资料获取完成')
           
-          // 立即通知文章store重新获取数据
-          try {
-            const { usePostsStore } = await import('./posts')
-            const postsStore = usePostsStore()
-            // 直接获取用户文章，而不是只清除数据
-            await postsStore.fetchUserPosts(session.user.id)
-          } catch (postsError) {
-            console.error('通知文章store失败:', postsError)
-          }
+          // 不在这里获取文章数据，让各个页面自己决定需要获取什么数据
+          // 这样可以避免广场页面不必要地获取用户文章
         } catch (error) {
           console.error('获取用户资料失败:', error)
         }

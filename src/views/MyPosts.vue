@@ -323,14 +323,14 @@ watch(filteredUserPosts, (newFilteredPosts) => {
 // 监听认证状态变化，确保登录后获取数据
 watch(isAuthenticated, (newValue, oldValue) => {
   console.log('MyPosts: 认证状态变化:', oldValue, '->', newValue, '用户:', user.value?.email)
-  if (newValue && user.value && hasInitialized.value && userPosts.value.length === 0) {
-    // 只有在没有数据时才获取，避免与auth.ts中的调用重复
+  if (newValue && user.value && hasInitialized.value) {
+    // 认证状态变化时，总是获取用户文章（因为auth.ts不再自动获取）
     console.log('MyPosts: 认证状态变化，准备获取用户文章')
     safeFetchUserPosts(user.value.id)
   } else {
     console.log('MyPosts: 认证状态变化，但跳过获取文章:', {
-      hasData: userPosts.value.length > 0,
-      hasInitialized: hasInitialized.value
+      hasInitialized: hasInitialized.value,
+      hasUser: !!user.value
     })
   }
 })
