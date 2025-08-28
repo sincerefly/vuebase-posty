@@ -147,9 +147,9 @@ export const useAuthStore = defineStore('auth', () => {
           // 不抛出错误，因为用户注册已经成功
         }
 
-        user.value = data.user
-        await fetchProfile(data.user.id)
-        console.log('用户资料创建成功')
+        // 不手动调用fetchProfile，让onAuthStateChange统一处理
+        // user.value会在onAuthStateChange中自动更新
+        console.log('用户资料创建成功，等待onAuthStateChange处理')
       }
 
       return { success: true, data }
@@ -180,18 +180,9 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('登录成功，用户数据:', data.user)
       console.log('会话数据:', data.session)
       
-      user.value = data.user
-      if (data.user) {
-        try {
-          await fetchProfile(data.user.id)
-          console.log('用户资料获取成功:', profile.value)
-        } catch (profileError) {
-          console.warn('获取用户资料失败，但登录成功:', profileError)
-        }
-      }
-
-      // 注意：不需要手动调用initAuth，因为auth监听器会自动处理状态更新
-      console.log('登录流程完成')
+      // 不手动调用fetchProfile，让onAuthStateChange统一处理
+      // user.value会在onAuthStateChange中自动更新
+      console.log('登录流程完成，等待onAuthStateChange处理用户资料获取')
       
       return { success: true, data }
     } catch (error: any) {
@@ -278,7 +269,8 @@ export const useAuthStore = defineStore('auth', () => {
           try {
             const { usePostsStore } = await import('./posts')
             const postsStore = usePostsStore()
-            await postsStore.handleAuthStateChange(session.user.id)
+            // 直接获取用户文章，而不是只清除数据
+            await postsStore.fetchUserPosts(session.user.id)
           } catch (postsError) {
             console.error('通知文章store失败:', postsError)
           }
