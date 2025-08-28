@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onActivated, ref } from 'vue'
 import { usePostsStore } from '../stores/posts'
 import { useAuthStore } from '../stores/auth'
 import { useI18n } from 'vue-i18n'
@@ -83,6 +83,9 @@ const authStore = useAuthStore()
 
 // 检查是否为开发环境
 const isDev = import.meta.env.DEV
+
+// 防止重复请求的标记
+const isFetchingData = ref(false)
 
 const formatDate = (dateString: string | null) => {
   if (!dateString) return ''
@@ -96,6 +99,22 @@ const getAuthorName = (email: string | null) => {
   return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
 }
 
+// 安全的获取已发布文章函数，防止重复请求
+const safeFetchPublishedPosts = async () => {
+  if (isFetchingData.value) {
+    console.log('Square: 已在获取数据中，跳过重复请求')
+    return
+  }
+  
+  isFetchingData.value = true
+  try {
+    console.log('Square: 开始获取已发布文章')
+    await postsStore.fetchPublishedPosts()
+  } finally {
+    isFetchingData.value = false
+  }
+}
+
 // 调试功能
 const refreshAuth = async () => {
   console.log('手动刷新认证状态...')
@@ -104,7 +123,7 @@ const refreshAuth = async () => {
 
 const refreshPosts = async () => {
   console.log('手动刷新文章...')
-  await postsStore.fetchPublishedPosts()
+  await safeFetchPublishedPosts()
 }
 
 const testConnection = async () => {
@@ -113,8 +132,32 @@ const testConnection = async () => {
   console.log('连接测试结果:', result)
 }
 
-onMounted(() => {
-  postsStore.fetchPublishedPosts()
+onMounted(async () => {
+  console.log('Square: 组件挂载，开始初始化...')
+  
+  // 等待认证状态初始化完成
+  if (!authStore.user && !authStore.loading) {
+    console.log('Square: 等待认证状态初始化...')
+    await authStore.initAuth()
+  } else if (authStore.loading) {
+    console.log('Square: 认证状态正在初始化中，等待完成...')
+    // 等待认证完成
+    while (authStore.loading) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }
+  
+  // 获取已发布文章（广场页面显示所有已发布文章）
+  console.log('Square: 获取已发布文章...')
+  await safeFetchPublishedPosts()
+  
+  console.log('Square: 组件挂载完成')
+})
+
+// 当组件被激活时（路由切换回来），重新获取数据
+onActivated(() => {
+  console.log('Square: 组件被激活，重新获取数据')
+  safeFetchPublishedPosts()
 })
 </script>
 

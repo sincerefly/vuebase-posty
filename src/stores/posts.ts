@@ -529,30 +529,17 @@ export const usePostsStore = defineStore('posts', () => {
     isFetchingUserPosts.value = false
   }
 
-  // 新增：处理认证状态变化后的文章重新获取
+  // 优化：处理认证状态变化，只清除数据，不主动获取
   const handleAuthStateChange = async (userId?: string) => {
     console.log('handleAuthStateChange: 处理认证状态变化，用户ID:', userId)
     
-    // 重置所有状态
-    forceResetAll()
+    // 只清除用户文章数据，不清除已发布文章（广场页面需要）
+    userPosts.value = []
     
-    // 如果有用户ID，重新获取用户文章
-    if (userId) {
-      console.log('handleAuthStateChange: 重新获取用户文章')
-      try {
-        await fetchUserPosts(userId)
-      } catch (error) {
-        console.error('handleAuthStateChange: 获取用户文章失败:', error)
-      }
-    }
+    // 重置用户文章相关的加载状态
+    isFetchingUserPosts.value = false
     
-    // 重新获取已发布文章
-    console.log('handleAuthStateChange: 重新获取已发布文章')
-    try {
-      await fetchPublishedPosts()
-    } catch (error) {
-      console.error('handleAuthStateChange: 获取已发布文章失败:', error)
-    }
+    console.log('handleAuthStateChange: 用户文章数据已清除，等待页面主动获取')
   }
 
   return {

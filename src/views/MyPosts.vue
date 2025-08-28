@@ -50,18 +50,6 @@
         <!-- 操作按钮 -->
         <div class="flex space-x-2">
           <button
-            @click="() => { 
-              console.log('MyPosts: 刷新按钮被点击'); 
-              user && fetchUserPosts(user.id); 
-            }"
-            class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {{ $t('common.refresh') }}
-          </button>
-          <button
             @click="showPostEditor = true"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
           >
@@ -233,8 +221,9 @@ const showAuthModal = ref(false)
 const showPostEditor = ref(false)
 const editingPost = ref<Post | null>(null)
 
-// 防止重复调用的标记
+// 防止重复请求的标记
 const hasInitialized = ref(false)
+const isFetchingData = ref(false)
 
 // 使用computed来确保响应性
 const isAuthenticated = computed(() => authStore.isAuthenticated)
@@ -291,11 +280,21 @@ const handlePublishPost = async (postId: number) => {
   }
 }
 
-// 监听路由变化，每次进入我的页面时刷新数据
-watch(() => route.name, (newRouteName, oldRouteName) => {
-  console.log('MyPosts: 路由变化:', oldRouteName, '->', newRouteName)
-  // 移除自动刷新逻辑，只在用户操作时获取数据
-})
+// 安全的获取用户文章函数，防止重复请求
+const safeFetchUserPosts = async (userId: string) => {
+  if (isFetchingData.value) {
+    console.log('MyPosts: 已在获取数据中，跳过重复请求')
+    return
+  }
+  
+  isFetchingData.value = true
+  try {
+    console.log('MyPosts: 开始获取用户文章，用户ID:', userId)
+    await fetchUserPosts(userId)
+  } finally {
+    isFetchingData.value = false
+  }
+}
 
 // 监听userPosts变化
 watch(userPosts, (newUserPosts) => {
@@ -310,27 +309,16 @@ watch(filteredUserPosts, (newFilteredPosts) => {
   console.log('MyPosts: filteredUserPosts状态变化，文章数量:', newFilteredPosts.length)
 }, { immediate: true })
 
-// 监听认证状态变化
-watch(isAuthenticated, (newValue, oldValue) => {
-  console.log('MyPosts: 认证状态变化:', oldValue, '->', newValue, '用户:', user.value?.email)
-  // 移除自动获取数据的逻辑，只在用户操作时获取
-})
-
-// 监听用户信息变化（只在用户从无到有时触发）
-watch(user, (newUser, oldUser) => {
-  console.log('MyPosts: 用户信息变化:', newUser?.email, '之前:', oldUser?.email)
-  // 移除自动获取数据的逻辑，只在用户操作时获取
-})
-
 onMounted(async () => {
-  console.log('MyPosts: 组件挂载，认证状态:', isAuthenticated.value, '用户:', user.value?.email)
+  console.log('🚀 MyPosts: 组件挂载开始')
+  console.log('🚀 初始认证状态:', isAuthenticated.value, '用户:', user.value?.email)
   
   // 等待认证状态初始化完成
   if (!authStore.user && !authStore.loading) {
-    console.log('MyPosts: 等待认证状态初始化...')
+    console.log('🚀 等待认证状态初始化...')
     await authStore.initAuth()
   } else if (authStore.loading) {
-    console.log('MyPosts: 认证状态正在初始化中，等待完成...')
+    console.log('🚀 认证状态正在初始化中，等待完成...')
     // 等待认证完成
     while (authStore.loading) {
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -339,20 +327,35 @@ onMounted(async () => {
   
   // 标记已初始化
   hasInitialized.value = true
+  console.log('🚀 hasInitialized 设置为 true')
   
-  // 如果已经认证且有用户，且没有数据，则获取文章
-  if (isAuthenticated.value && user.value && userPosts.value.length === 0) {
-    console.log('MyPosts: 初始化时没有数据，获取用户文章，用户ID:', user.value.id)
-    fetchUserPosts(user.value.id)
+  // 如果已经认证且有用户，则获取文章
+  if (isAuthenticated.value && user.value) {
+    console.log('🚀 初始化时准备获取用户文章，用户ID:', user.value.id)
+    await safeFetchUserPosts(user.value.id)
+  } else {
+    console.log('🚀 初始化时跳过获取文章:', {
+      isAuthenticated: isAuthenticated.value,
+      hasUser: !!user.value
+    })
   }
   
-  console.log('MyPosts: 组件挂载完成')
+  console.log('🚀 MyPosts: 组件挂载完成')
 })
 
-// 当组件被激活时（路由切换回来），不自动刷新数据
+// 当组件被激活时（路由切换回来），重新获取数据
 onActivated(() => {
-  console.log('MyPosts: 组件被激活，但不自动刷新数据')
-  // 移除自动刷新逻辑，只在用户操作时刷新
+  console.log('🔄 MyPosts: 组件被激活')
+  console.log('🔄 当前认证状态:', isAuthenticated.value, '用户:', user.value?.email)
+  if (isAuthenticated.value && user.value) {
+    console.log('🔄 激活时准备获取用户文章')
+    safeFetchUserPosts(user.value.id)
+  } else {
+    console.log('🔄 激活时跳过获取文章:', {
+      isAuthenticated: isAuthenticated.value,
+      hasUser: !!user.value
+    })
+  }
 })
 
 

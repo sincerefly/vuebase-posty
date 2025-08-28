@@ -8,6 +8,9 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const profile = ref<Tables<'users'> | null>(null)
   const loading = ref(false)
+  
+  // 防止重复获取用户资料的标记
+  const isFetchingProfile = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
   
@@ -36,11 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       if (currentUser) {
         console.log('发现已登录用户:', currentUser.email)
-        try {
-          await fetchProfile(currentUser.id)
-        } catch (profileError) {
-          console.warn('初始化时获取用户资料失败:', profileError)
-        }
+        // 不在这里获取用户资料，让 setupAuthListener 统一处理
       } else {
         console.log('未发现已登录用户')
       }
@@ -53,7 +52,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 获取用户资料
   const fetchProfile = async (userId: string) => {
+    // 防止重复获取用户资料
+    if (isFetchingProfile.value) {
+      console.log('fetchProfile: 已在获取用户资料中，跳过重复调用')
+      return
+    }
+    
+    isFetchingProfile.value = true
     console.log('fetchProfile: 开始获取用户资料，用户ID:', userId)
+    
     try {
       const { data, error } = await supabase
         .from('users')
@@ -102,6 +109,8 @@ export const useAuthStore = defineStore('auth', () => {
       } catch (createError) {
         console.error('创建用户资料异常:', createError)
       }
+    } finally {
+      isFetchingProfile.value = false
     }
   }
 
