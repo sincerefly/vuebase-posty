@@ -245,10 +245,10 @@ const filter = computed(() => postsStore.filter)
 const filteredUserPosts = computed(() => postsStore.filteredUserPosts)
 const { fetchUserPosts, setFilter, publishPost, unpublishPost, testSupabaseConnection, testSupabaseBasicConnection } = postsStore
 
-const filterOptions = [
-  { value: 'all' as const, label: t('common.all') },
-  { value: 'published' as const, label: t('common.published') },
-  { value: 'unpublished' as const, label: t('common.unpublished') }
+const filterOptions: Array<{ value: 'all' | 'published' | 'unpublished'; label: string }> = [
+  { value: 'all', label: t('common.all') },
+  { value: 'published', label: t('common.published') },
+  { value: 'unpublished', label: t('common.unpublished') }
 ]
 
 const formatDate = (dateString: string | null) => {

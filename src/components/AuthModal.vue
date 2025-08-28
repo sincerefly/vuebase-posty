@@ -22,21 +22,6 @@
             </h3>
 
             <form @submit.prevent="handleSubmit" class="space-y-4">
-              <div v-if="!isLogin">
-                <label for="username" class="block text-sm font-medium text-gray-700">
-                  {{ $t('common.username') }}
-                </label>
-                <input
-                  id="username"
-                  v-model="form.username"
-                  type="text"
-                  required
-                  minlength="3"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  :placeholder="$t('common.username')"
-                />
-              </div>
-
               <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">
                   {{ $t('common.email') }}
@@ -152,7 +137,6 @@ const error = ref('')
 const localLoading = ref(false) // 使用本地loading状态
 
 const form = reactive({
-  username: '',
   email: '',
   password: '',
   confirmPassword: ''
@@ -181,7 +165,6 @@ const close = () => {
 
 const resetForm = () => {
   console.log('AuthModal: 重置表单')
-  form.username = ''
   form.email = ''
   form.password = ''
   form.confirmPassword = ''
@@ -196,10 +179,6 @@ const toggleMode = () => {
 
 const validateForm = () => {
   if (!isLogin.value) {
-    if (form.username.length < 3) {
-      error.value = t('auth.usernameTooShort')
-      return false
-    }
     if (form.password !== form.confirmPassword) {
       error.value = t('auth.passwordMismatch')
       return false
@@ -219,7 +198,7 @@ const handleSubmit = async () => {
     if (isLogin.value) {
       result = await authStore.login(form.email, form.password)
     } else {
-      result = await authStore.register(form.email, form.password, form.username)
+      result = await authStore.register(form.email, form.password)
     }
 
     if (result.success) {

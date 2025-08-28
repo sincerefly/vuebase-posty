@@ -5,7 +5,7 @@ import type { Tables } from '../types/database.types'
 
 export type Post = Tables<'posts'> & {
   users?: {
-    username: string
+    email: string
   }
 }
 
@@ -40,7 +40,7 @@ export const usePostsStore = defineStore('posts', () => {
         .from('posts')
         .select(`
           *,
-          users:user_id(username)
+          users:user_id(email)
         `)
         .not('published_at', 'is', null)
         .order('published_at', { ascending: false })
@@ -277,7 +277,7 @@ export const usePostsStore = defineStore('posts', () => {
         .from('posts')
         .select(`
           *,
-          users:user_id(username)
+          users:user_id(email)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -529,6 +529,32 @@ export const usePostsStore = defineStore('posts', () => {
     isFetchingUserPosts.value = false
   }
 
+  // 新增：处理认证状态变化后的文章重新获取
+  const handleAuthStateChange = async (userId?: string) => {
+    console.log('handleAuthStateChange: 处理认证状态变化，用户ID:', userId)
+    
+    // 重置所有状态
+    forceResetAll()
+    
+    // 如果有用户ID，重新获取用户文章
+    if (userId) {
+      console.log('handleAuthStateChange: 重新获取用户文章')
+      try {
+        await fetchUserPosts(userId)
+      } catch (error) {
+        console.error('handleAuthStateChange: 获取用户文章失败:', error)
+      }
+    }
+    
+    // 重新获取已发布文章
+    console.log('handleAuthStateChange: 重新获取已发布文章')
+    try {
+      await fetchPublishedPosts()
+    } catch (error) {
+      console.error('handleAuthStateChange: 获取已发布文章失败:', error)
+    }
+  }
+
   return {
     posts,
     userPosts, // 新增：返回用户文章状态
@@ -547,6 +573,7 @@ export const usePostsStore = defineStore('posts', () => {
     clearPosts, // 新增：返回清除方法
     resetLoadingState, // 新增：返回重置加载状态方法
     forceResetAll, // 新增：返回完全重置方法
+    handleAuthStateChange, // 新增：返回处理认证状态变化方法
     testSupabaseConnection, // 新增：返回测试连接方法
     testSupabaseBasicConnection, // 新增：返回基本连接测试方法
     checkAndReinitSupabase, // 新增：返回检查并重新初始化Supabase状态方法

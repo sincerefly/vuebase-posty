@@ -10,7 +10,15 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
-  const username = computed(() => profile.value?.username || user.value?.email)
+  
+  // 简化用户名显示逻辑：始终使用邮箱前缀，首字母大写
+  const username = computed(() => {
+    if (user.value?.email) {
+      const emailPrefix = user.value.email.split('@')[0]
+      return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
+    }
+    return '用户'
+  })
 
   // 初始化用户状态
   const initAuth = async () => {
@@ -71,7 +79,6 @@ export const useAuthStore = defineStore('auth', () => {
             .from('users')
             .insert({
               id: userData.user.id,
-              username: userData.user.email?.split('@')[0] || 'user',
               email: userData.user.email
             })
           
@@ -98,21 +105,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 注册
-  const register = async (email: string, password: string, username: string) => {
+  // 注册（简化版，无需用户名）
+  const register = async (email: string, password: string) => {
     loading.value = true
     try {
-      console.log('开始注册...', { email, username })
+      console.log('开始注册...', { email })
       
-      // 使用正确的 Supabase 注册格式
+      // 使用简化的 Supabase 注册格式
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: {
-            username: username
-          }
-        }
+        password
       })
 
       if (error) {
@@ -123,12 +125,11 @@ export const useAuthStore = defineStore('auth', () => {
       if (data.user) {
         console.log('注册成功，用户数据:', data.user)
         
-        // 创建用户资料
+        // 创建用户资料（不包含用户名）
         const { error: profileError } = await supabase
           .from('users')
           .insert({
             id: data.user.id,
-            username,
             email
           })
 
@@ -260,8 +261,20 @@ export const useAuthStore = defineStore('auth', () => {
       if (session?.user) {
         console.log('用户已登录:', session.user.email)
         try {
-          await fetchProfile(session.user.id)
-          console.log('用户资料获取完成')
+          // 添加延迟确保数据库状态同步
+          setTimeout(async () => {
+            await fetchProfile(session.user.id)
+            console.log('用户资料获取完成')
+            
+            // 通知文章store重新获取数据
+            try {
+              const { usePostsStore } = await import('./posts')
+              const postsStore = usePostsStore()
+              await postsStore.handleAuthStateChange(session.user.id)
+            } catch (postsError) {
+              console.error('通知文章store失败:', postsError)
+            }
+          }, 1000)
         } catch (error) {
           console.error('获取用户资料失败:', error)
         }
@@ -273,6 +286,15 @@ export const useAuthStore = defineStore('auth', () => {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('supabase.auth.token')
           sessionStorage.clear()
+        }
+        
+        // 通知文章store清除数据
+        try {
+          const { usePostsStore } = await import('./posts')
+          const postsStore = usePostsStore()
+          postsStore.forceResetAll()
+        } catch (postsError) {
+          console.error('通知文章store清除数据失败:', postsError)
         }
       }
       

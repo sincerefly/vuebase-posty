@@ -4,7 +4,7 @@ const messages = {
   zh: {
     common: {
       square: '广场',
-      myPosts: '我的',
+      myPosts: '我的文章',
       login: '登录',
       register: '注册',
       logout: '登出',
@@ -36,13 +36,16 @@ const messages = {
       loading: '加载中...',
       error: '错误',
       success: '成功',
-      discoverContent: '发现精彩的文章内容',
+      discoverContent: '发现精彩内容',
       managePosts: '管理您的文章',
       otherSettings: '其他设置',
       moreSettingsComing: '更多设置选项将在后续版本中添加',
       personalizeExperience: '个性化您的体验',
       forceRefreshAuth: '强制刷新认证状态',
-      anonymousUser: '匿名用户'
+      anonymousUser: '匿名用户',
+      noPublishedPosts: '暂无已发布文章',
+      author: '作者',
+      unknownUser: '未知用户'
     },
     auth: {
       loginTitle: '登录',
@@ -112,7 +115,10 @@ const messages = {
       moreSettingsComing: 'More settings options will be added in future versions',
       personalizeExperience: 'Personalize your experience',
       forceRefreshAuth: 'Force Refresh Auth Status',
-      anonymousUser: 'Anonymous User'
+      anonymousUser: 'Anonymous User',
+      noPublishedPosts: 'No published posts yet',
+      author: 'Author',
+      unknownUser: 'Unknown User'
     },
     auth: {
       loginTitle: 'Login',
